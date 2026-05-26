@@ -121,7 +121,7 @@ psycopg2-binary
 
 ## 🙋 Author
 
-**Nikunj Mishra** — BCA Student, University of Rajasthan  
+**Nikunj Mishra** 
 Specializing in Machine Learning & Data Analysis
 
 - GitHub: https://github.com/nikunjm3003  
