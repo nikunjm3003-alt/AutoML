@@ -34,67 +34,69 @@ def auth_page():
         new_pw = st.text_input("Password", key='reg_pw', type='password', placeholder="********")
 
         if st.button("Register", use_container_width=True):
-            if not new_un or not new_email or not new_pw:
-                st.warning("Please fill in all the details")
-            else:
-                try:
-                    existing = conn.query(
-                        "SELECT user_id FROM users_automl WHERE username = :un OR email = :mail",
-                        params={"un": new_un, "mail": new_email},
-                        ttl=0
-                    )
+            with st.spinner("Just a sec...."):
+                if not new_un or not new_email or not new_pw:
+                    st.warning("Please fill in all the details")
+                else:
+                    try:
+                        existing = conn.query(
+                            "SELECT user_id FROM users_automl WHERE username = :un OR email = :mail",
+                            params={"un": new_un, "mail": new_email},
+                            ttl=0
+                        )
 
-                    if not existing.empty:
-                        st.error("Username or email already registered")
-                    else:
-                        user_id = str(uuid.uuid4())
-                        hashed_pw = bcrypt.hashpw(new_pw.encode(), bcrypt.gensalt()).decode()
+                        if not existing.empty:
+                            st.error("Username or email already registered")
+                        else:
+                            user_id = str(uuid.uuid4())
+                            hashed_pw = bcrypt.hashpw(new_pw.encode(), bcrypt.gensalt()).decode()
 
-                        with conn.session as s:
-                            s.execute(
-                                text("""
-                                    INSERT INTO users_automl(user_id, username, email, password)
-                                    VALUES(:uid, :un, :mail, :pw)
-                                """),
-                                {"uid": user_id, "un": new_un, "mail": new_email, "pw": hashed_pw}
-                            )
-                            s.commit()
-                        st.success("Registered Successfully! Please go to the Login tab.")
-                except Exception as e:
-                    st.error(f"Database error: {e}")
+                            with conn.session as s:
+                                s.execute(
+                                    text("""
+                                        INSERT INTO users_automl(user_id, username, email, password)
+                                        VALUES(:uid, :un, :mail, :pw)
+                                    """),
+                                    {"uid": user_id, "un": new_un, "mail": new_email, "pw": hashed_pw}
+                                )
+                                s.commit()
+                            st.success("Registered Successfully! Please go to the Login tab.")
+                    except Exception as e:
+                        st.error(f"Database error: {e}")
 
     with tab2:
         login_un = st.text_input("Username", placeholder="levi", key='log_un')
         login_pass = st.text_input("Password", placeholder="your password", type='password', key='log_pass')
 
         if st.button("Login", use_container_width=True):
-            if not login_un or not login_pass:
-                st.warning("Please enter your details")
-            else:
-                try:
-                    result = conn.query(
-                        "SELECT user_id, username, password FROM users_automl WHERE username = :un",
-                        params={"un": login_un},
-                        ttl=0
-                    )
+            with st.spinner("Just a sec...."):
+                if not login_un or not login_pass:
+                    st.warning("Please enter your details")
+                else:
+                    try:
+                        result = conn.query(
+                            "SELECT user_id, username, password FROM users_automl WHERE username = :un",
+                            params={"un": login_un},
+                            ttl=0
+                        )
 
-                    if result.empty:
-                        st.error("Invalid username or password")
-                    else:
-                        stored_hash = result.iloc[0]['password']
-                        if isinstance(stored_hash, str):
-                            stored_hash = stored_hash.encode()
-
-                        if bcrypt.checkpw(login_pass.encode(), stored_hash):
-                            st.session_state.logged_in = True
-                            st.session_state.user_id = result.iloc[0]["user_id"]
-                            st.session_state.username = result.iloc[0]["username"]
-                            st.success("Login Successful!")
-                            st.rerun()
+                        if result.empty:
+                            st.error("Invalid username or password")
                         else:
-                            st.error("Invalid username or password!")
-                except Exception as e:
-                    st.error(f"Database Connection Error: {e}")
+                            stored_hash = result.iloc[0]['password']
+                            if isinstance(stored_hash, str):
+                                stored_hash = stored_hash.encode()
+
+                            if bcrypt.checkpw(login_pass.encode(), stored_hash):
+                                st.session_state.logged_in = True
+                                st.session_state.user_id = result.iloc[0]["user_id"]
+                                st.session_state.username = result.iloc[0]["username"]
+                                st.success("Login Successful!")
+                                st.rerun()
+                            else:
+                                st.error("Invalid username or password!")
+                    except Exception as e:
+                        st.error(f"Database Connection Error: {e}")
 
 
 if not st.session_state.logged_in:
