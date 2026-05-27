@@ -4,7 +4,7 @@ from sqlalchemy import text
 import uuid
 import bcrypt
 import secrets
-from utils.mailer import send_verification_email, is_valid_email
+from utils.mailer import send_verification_email, is_valid_email,is_real_email
 
 from utils.style import set_login_background, set_app_background
 from utils.preprocessor import load_and_preprocess
@@ -53,6 +53,8 @@ def auth_page():
                     st.warning("Please fill in all the details")
                 elif not is_valid_email(new_email):
                     st.warning("Please enter a valid email")
+                elif not is_real_email(new_email):
+                    st.warning("Please Enter a real email!!!")
                 else:
                     try:
                         existing = conn.query(

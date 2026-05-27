@@ -1,6 +1,7 @@
 import smtplib
-import streamlit as st
 import re
+import requests
+import streamlit as st
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
@@ -8,10 +9,27 @@ def is_valid_email(email):
     pattern = r'^[\w\.-]+@[\w\.-]+\.\w{2,}$'
     return re.match(pattern, email) is not None
 
+def is_real_email(email):
+    try:
+        api_key = st.secrets['abstract']['api_key']
+        response = requests.get(
+            "https://emailvalidation.abstractapi.com/v1/",
+            params={"api_key": api_key, "email": email},
+            timeout=5
+        )
+        data = response.json()
+        return (
+            data.get("is_valid_format", {}).get("value") and
+            data.get("is_mx_found", {}).get("value") and
+            data.get("is_smtp_valid", {}).get("value")
+        )
+    except Exception:
+        return True  
+
 def send_verification_email(to_email, username, token):
     sender = st.secrets['gmail']['sender']
     app_password = st.secrets['gmail']['app_password']
-    verify_link = f"https://automl-woqfu2uxfrmluak9ywhpdi.streamlit.app/?token={token}"
+    verify_link = f"https://your-app-url.streamlit.app/?token={token}"
 
     msg = MIMEMultipart('alternative')
     msg['Subject'] = "Verify your AutoML Studio account"
