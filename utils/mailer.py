@@ -1,7 +1,12 @@
 import smtplib
 import streamlit as st
+import re
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+
+def is_valid_email(email):
+    pattern = r'^[\w\.-]+@[\w\.-]+\.\w{2,}$'
+    return re.match(pattern, email) is not None
 
 def send_verification_email(to_email, username, token):
     sender = st.secrets['gmail']['sender']
