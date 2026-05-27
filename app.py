@@ -5,6 +5,7 @@ import uuid
 import bcrypt
 import secrets
 from utils.mailer import send_verification_email, is_valid_email
+
 from utils.style import set_login_background, set_app_background
 from utils.preprocessor import load_and_preprocess
 from utils.trainer import train_model
@@ -32,6 +33,7 @@ if "token" in params:
         s.commit()
     st.success("Email verified! You can now log in.")
     st.query_params.clear()
+
 # Registration and login page
 def auth_page():
     
@@ -51,44 +53,38 @@ def auth_page():
                     st.warning("Please fill in all the details")
                 elif not is_valid_email(new_email):
                     st.warning("Please enter a valid email")
-                else: 
+                else:
+                    try:
+                        existing = conn.query(
+                            "SELECT user_id FROM users_automl WHERE username = :un OR email = :mail",
+                            params={"un": new_un, "mail": new_email},
+                            ttl=0
+                        )
                         if not existing.empty:
                             st.error("Username or email already registered")
                         else:
+                            user_id = str(uuid.uuid4())
+                            hashed_pw = bcrypt.hashpw(new_pw.encode(), bcrypt.gensalt()).decode()
+                            verify_token = secrets.token_urlsafe(32)
+
                             try:
-                                existing = conn.query(
-                                    "SELECT user_id FROM users_automl WHERE username = :un OR email = :mail",
-                                    params={"un": new_un, "mail": new_email},
-                                    ttl=0
+                                send_verification_email(new_email, new_un, verify_token)
+                            except Exception:
+                                st.error("Could not send verification email. Please check your email address and try again.")
+                                st.stop()
+
+                            with conn.session as s:
+                                s.execute(
+                                    text("""
+                                        INSERT INTO users_automl(user_id, username, email, password, verified, verify_token)
+                                        VALUES(:uid, :un, :mail, :pw, FALSE, :token)
+                                    """),
+                                    {"uid": user_id, "un": new_un, "mail": new_email, "pw": hashed_pw, "token": verify_token}
                                 )
-                                if not existing.empty:
-                                    st.error("Username or email already registered")
-                                else:
-                                    user_id = str(uuid.uuid4())
-                                    hashed_pw = bcrypt.hashpw(new_pw.encode(), bcrypt.gensalt()).decode()
-                                    verify_token = secrets.token_urlsafe(32)
-
-                                
-                                try:
-                                    send_verification_email(new_email, new_un, verify_token)
-                                except Exception:
-                                    st.error("Could not send verification email. Please check your email address and try again.")
-                                    st.stop()
-
-                               
-                                with conn.session as s:
-                                    s.execute(
-                                        text("""
-                                            INSERT INTO users_automl(user_id, username, email, password, verified, verify_token)
-                                            VALUES(:uid, :un, :mail, :pw, FALSE, :token)
-                                        """),
-                                        {"uid": user_id, "un": new_un, "mail": new_email, "pw": hashed_pw, "token": verify_token}
-                                    )
-                                    s.commit()
-                                st.success("Registered! Check your email to verify your account.")
-
-                            except Exception as e:
-                                st.error(f"Database error: {e}")
+                                s.commit()
+                            st.success("Registered! Check your email to verify your account.")
+                    except Exception as e:
+                        st.error(f"Database error: {e}")
 
     with tab2:
         login_un = st.text_input("Username", placeholder="levi", key='log_un')
