@@ -3,7 +3,8 @@ import pandas as pd
 from sqlalchemy import text
 import uuid
 import bcrypt
-
+import secrets
+from utils.mailer import send_verification_email
 from utils.style import set_login_background, set_app_background
 from utils.preprocessor import load_and_preprocess
 from utils.trainer import train_model
@@ -20,6 +21,17 @@ if 'logged_in' not in st.session_state:
     st.session_state.user_id = None
     st.session_state.username = None
 
+params = st.query_params
+if "token" in params:
+    token = params["token"]
+    with conn.session as s:
+        s.execute(
+            text("UPDATE users_automl SET verified = TRUE, verify_token = NULL WHERE verify_token = :token"),
+            {"token": token}
+        )
+        s.commit()
+    st.success("Email verified! You can now log in.")
+    st.query_params.clear()
 # Registration and login page
 def auth_page():
     
@@ -50,16 +62,18 @@ def auth_page():
                         else:
                             user_id = str(uuid.uuid4())
                             hashed_pw = bcrypt.hashpw(new_pw.encode(), bcrypt.gensalt()).decode()
+                            verify_token = secrets.token_urlsafe(32)
 
                             with conn.session as s:
                                 s.execute(
                                     text("""
-                                        INSERT INTO users_automl(user_id, username, email, password)
-                                        VALUES(:uid, :un, :mail, :pw)
+                                        INSERT INTO users_automl(user_id, username, email, password, verified, verify_token)
+                                        VALUES(:uid, :un, :mail, :pw, FALSE, :token)
                                     """),
-                                    {"uid": user_id, "un": new_un, "mail": new_email, "pw": hashed_pw}
+                                    {"uid": user_id, "un": new_un, "mail": new_email, "pw": hashed_pw, "token": verify_token}
                                 )
                                 s.commit()
+                            send_verification_email(new_email,new_un,verify_token)
                             st.success("Registered Successfully! Please go to the Login tab.")
                     except Exception as e:
                         st.error(f"Database error: {e}")
@@ -75,7 +89,7 @@ def auth_page():
                 else:
                     try:
                         result = conn.query(
-                            "SELECT user_id, username, password FROM users_automl WHERE username = :un",
+                            "SELECT user_id, username, password, verified FROM users_automl WHERE username = :un",
                             params={"un": login_un},
                             ttl=0
                         )
@@ -88,11 +102,14 @@ def auth_page():
                                 stored_hash = stored_hash.encode()
 
                             if bcrypt.checkpw(login_pass.encode(), stored_hash):
-                                st.session_state.logged_in = True
-                                st.session_state.user_id = result.iloc[0]["user_id"]
-                                st.session_state.username = result.iloc[0]["username"]
-                                st.success("Login Successful!")
-                                st.rerun()
+                                if not result.iloc[0]['verified']:
+                                    st.warning("Please verify your email before logging in.")
+                                else:
+                                    st.session_state.logged_in = True
+                                    st.session_state.user_id = result.iloc[0]["user_id"]
+                                    st.session_state.username = result.iloc[0]["username"]
+                                    st.success("Login Successful!")
+                                    st.rerun()
                             else:
                                 st.error("Invalid username or password!")
                     except Exception as e:
