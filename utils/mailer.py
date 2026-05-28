@@ -18,13 +18,13 @@ def is_real_email(email):
             timeout=5
         )
         data = response.json()
-        return (
-            data.get("is_valid_format", {}).get("value") and
-            data.get("is_mx_found", {}).get("value") and
-            data.get("is_smtp_valid", {}).get("value")
-        )
+        
+        deliverability = data.get("deliverability", "UNKNOWN")
+        
+        return deliverability != "UNDELIVERABLE"
+        
     except Exception:
-        return True  
+        return True
 
 def send_verification_email(to_email, username, token):
     sender = st.secrets['gmail']['sender']
