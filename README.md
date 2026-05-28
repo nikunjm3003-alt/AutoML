@@ -2,7 +2,7 @@
 
 > Upload a CSV. Pick a target. Get a trained model — no code required.
 
-🔗 **Live Demo:** https://automl-woqfu2uxfrmluak9ywhpdi.streamlit.app/
+🔗 **Live Demo:** https://automl-gqkmeobfck7yl7hihsrms8.streamlit.app/
 
 ---
 
