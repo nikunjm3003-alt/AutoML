@@ -48,7 +48,7 @@ def set_login_background(image_path: str):
                 background-image: url("data:image/jpeg;base64,{img_b64}");
                 background-size: cover;
                 background-position: center;
-                background-attachment: fixed;
+                background-attachment: scroll;
             }}
             .stApp::before {{
                 content: "";
@@ -83,7 +83,7 @@ def set_app_background(image_path: str = "assets/app_bg.jpg"):
                 background-image: url("data:image/jpeg;base64,{img_b64}");
                 background-size: cover;
                 background-position: center;
-                background-attachment: fixed;
+                background-attachment: scroll;
             }}
             .stApp::before {{
                 content: "";
