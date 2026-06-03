@@ -29,7 +29,7 @@ def is_real_email(email):
 def send_verification_email(to_email, username, token):
     sender = st.secrets['gmail']['sender']
     app_password = st.secrets['gmail']['app_password']
-    verify_link = f"https://automl-gqkmeobfck7yl7hihsrms8.streamlit.app/?token={token}"
+    verify_link = f"https://automl-uvw7ktj7tuxeq7dk7ahappk.streamlit.app/?token={token}"
 
     msg = MIMEMultipart('alternative')
     msg['Subject'] = "Verify your AutoML Studio account"
