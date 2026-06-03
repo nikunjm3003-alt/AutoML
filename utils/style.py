@@ -49,17 +49,8 @@ def set_login_background(image_path: str):
                 background-size: cover;
                 background-position: center;
                 background-attachment: scroll;
-            }}
-            .stApp::before {{
-                content: "";
-                position: fixed;
-                inset: 0;
-                background: rgba(0, 0, 0, 0.55);
-                z-index: 0;
-            }}
-            .stApp > * {{
-                position: relative;
-                z-index: 1;
+                background-color: rgba(0, 0, 0, 0.55);
+                background-blend-mode: darken;
             }}
             .stTabs [data-baseweb="tab-panel"],
             div[data-testid="stForm"] {{
@@ -84,17 +75,8 @@ def set_app_background(image_path: str = "assets/app_bg.jpg"):
                 background-size: cover;
                 background-position: center;
                 background-attachment: scroll;
-            }}
-            .stApp::before {{
-                content: "";
-                position: fixed;
-                inset: 0;
-                background: rgba(5, 0, 20, 0.72);
-                z-index: 0;
-            }}
-            .stApp > * {{
-                position: relative;
-                z-index: 1;
+                background-color: rgba(5, 0, 20, 0.72);
+                background-blend-mode: darken;
             }}
         """
     except FileNotFoundError:
