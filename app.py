@@ -23,15 +23,24 @@ if 'logged_in' not in st.session_state:
     st.session_state.username = None
 
 params = st.query_params
-if "token" in params:
-    token = params["token"]
+token = params.get("token", "").strip()
+
+if token:
     with conn.session as s:
-        s.execute(
-            text("UPDATE users_automl SET verified = TRUE, verify_token = NULL WHERE verify_token = :token"),
+        matched = s.execute(
+            text("SELECT user_id FROM users_automl WHERE verify_token = :token"),
             {"token": token}
-        )
-        s.commit()
-    st.success("Email verified! You can now log in.")
+        ).fetchone()
+
+        if matched:
+            s.execute(
+                text("UPDATE users_automl SET verified = TRUE, verify_token = NULL WHERE verify_token = :token"),
+                {"token": token}
+            )
+            s.commit()
+            st.success("Email verified! You can now log in.")
+        else:
+            st.warning("Invalid or already used verification link. If you already verified, just log in.")
     st.query_params.clear()
 
 # Registration and login page
@@ -99,7 +108,7 @@ def auth_page():
                 else:
                     try:
                         result = conn.query(
-                            "SELECT user_id, username, password, verified FROM users_automl WHERE username = :un",
+                            "SELECT user_id, username, email, password, verified FROM users_automl WHERE LOWER(username) = LOWER(:un)",
                             params={"un": login_un},
                             ttl=0
                         )
@@ -109,11 +118,24 @@ def auth_page():
                         else:
                             stored_hash = result.iloc[0]['password']
                             if isinstance(stored_hash, str):
-                                stored_hash = stored_hash.encode()
+                                stored_hash = stored_hash.strip().encode()
 
                             if bcrypt.checkpw(login_pass.encode(), stored_hash):
                                 if not result.iloc[0]['verified']:
-                                    st.warning("Please verify your email before logging in.")
+                                    st.warning("⚠️ Please verify your email before logging in.")
+                                    if st.button("Resend Verification Email", key="resend"):
+                                        new_token = secrets.token_urlsafe(32)
+                                        with conn.session as s:
+                                            s.execute(
+                                                text("UPDATE users_automl SET verify_token = :token WHERE username = :un"),
+                                                {"token": new_token, "un": result.iloc[0]["username"]}
+                                            )
+                                            s.commit()
+                                        try:
+                                            send_verification_email(result.iloc[0]["email"], result.iloc[0]["username"], new_token)
+                                            st.success("Verification email resent! Check your inbox.")
+                                        except Exception:
+                                            st.error("Could not resend verification email.")
                                 else:
                                     st.session_state.logged_in = True
                                     st.session_state.user_id = result.iloc[0]["user_id"]
