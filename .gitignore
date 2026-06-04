@@ -10,4 +10,3 @@ __pycache__/
 # Streamlit secrets 
 .streamlit/
 
-.devcontainer/

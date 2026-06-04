@@ -117,6 +117,12 @@ def auth_page():
                         if result.empty:
                             st.error("Invalid username or password")
                         else:
+                            # DEBUG - remove after fixing
+                            st.write("✅ User found:", result.iloc[0]['username'])
+                            st.write("✅ Verified:", result.iloc[0]['verified'])
+                            st.write("✅ Hash preview:", repr(result.iloc[0]['password'][:20]))
+                            st.write("✅ BCrypt result:", bcrypt.checkpw(login_pass.encode(), result.iloc[0]['password'].strip().encode()))
+
                             stored_hash = result.iloc[0]['password']
                             if isinstance(stored_hash, str):
                                 stored_hash = stored_hash.strip().encode()
