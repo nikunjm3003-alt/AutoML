@@ -42,6 +42,7 @@ if token:
         else:
             st.warning("Invalid or already used verification link. If you already verified, just log in.")
     st.query_params.clear()
+    st.stop()
 
 # Registration and login page
 def auth_page():
